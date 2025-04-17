@@ -1,39 +1,59 @@
+from datetime import datetime
 from flask import Flask
 
 app = Flask(__name__)
 
-finance_storage = {}
+storage = {}
 
 
-@app.route('/add/<date>/<int:number>')
-def add_expense(date, number):
-    year = int(date[:4])
-    month = int(date[4:6])
-    day = int(date[6:8])
-
-    finance_storage.setdefault(year, {}).setdefault(month, {}).setdefault(day, 0)
-    finance_storage[year][month][day] += number
-
-    return f"Expense {number} added for {day}.{month}.{year}"
+@app.route('/add/<date>/<int:number>', methods=['POST', 'GET'])
+def save_date(date, number):
+    date = datetime.fromisoformat(date)
+    storage.setdefault(date.year, {}).setdefault(date.month, {}).setdefault(date.day, {})
+    storage[date.year][date.month][date.day] = number
+    return ''
 
 
 @app.route('/calculate/<int:year>')
 def calculate_year(year):
-    total = 0
-    if year in finance_storage:
-        for month in finance_storage[year]:
-            for day in finance_storage[year][month]:
-                total += finance_storage[year][month][day]
-    return f"Total expenses for {year}: {total}"
+    if year not in storage:
+        storage[year] = {}
+    sum = 0
+    for k1, v1 in storage[year].items():
+        for k2, v2 in v1.items():
+            sum += v2
+
+    return f'Сумма за {year} год: {sum} руб.'
+
+
+months = {
+    1: 'январь',
+    2: 'февраль',
+    3: 'март',
+    4: 'апрель',
+    5: 'май',
+    6: 'июнь',
+    7: 'июль',
+    8: 'август',
+    9: 'сентябрь',
+    10: 'октябрь',
+    11: 'ноябрь',
+    12: 'декабрь',
+
+}
 
 
 @app.route('/calculate/<int:year>/<int:month>')
-def calculate_month(year, month):
-    total = 0
-    if year in finance_storage and month in finance_storage[year]:
-        for day in finance_storage[year][month]:
-            total += finance_storage[year][month][day]
-    return f"Total expenses for {month}/{year}: {total}"
+def calculate_year_month(year, month):
+    if year not in storage:
+        storage[year] = {}
+    if month not in storage[year]:
+        storage[year][month] = {}
+    sum = 0
+    for k, v in storage[year][month].items():
+        sum += v
+
+    return f'Сумма за {months[month]} месяц {year} года: {sum} руб.'
 
 
 if __name__ == '__main__':
